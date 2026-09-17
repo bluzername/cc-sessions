@@ -4,11 +4,14 @@ import { createTopic, updateTopicStatus, reopenTopic, closeTopic } from './topic
 import {
   formatStopNotification,
   formatSessionStart,
+  formatSessionResumed,
+  formatSessionEnd,
   formatSessionList,
 } from './formatter.js';
 import { buildKeyboard } from './keyboards.js';
 import { detectPrompt } from '../util/detect-prompt.js';
 import { setupRouter } from './router.js';
+import { EVENTS, normalizeEvent } from '../sessions/events.js';
 
 /**
  * Create and configure the Grammy bot.
@@ -81,7 +84,7 @@ export async function createBot(config, store, injector) {
         '<b>cc-sessions</b> \u2014 Claude Code session monitor',
         '',
         '/sessions \u2014 List active sessions',
-        '/archive \u2014 Archive this topic\'s session',
+        "/archive \u2014 Archive this topic's session",
         '/archive_all \u2014 Archive all stale sessions',
         '/help \u2014 This message',
         '',
@@ -112,46 +115,69 @@ export async function createBot(config, store, injector) {
 }
 
 /**
- * Handle an incoming hook payload: upsert session, manage topic, send notification.
+ * Handle an incoming hook payload: upsert session, manage topic, notify per event.
+ *
+ * - session_start: mark active, create topic if missing, post start/resumed message
+ * - user_prompt_submit: mark active, record task label, rename topic (no message)
+ * - session_end: mark completed, post end message
+ * - stop / notification: mark idle, detect prompt, post notification with keyboard
  */
 export async function handleHookPayload(bot, config, store, payload) {
   const groupId = config.telegramGroupId;
+  const event = normalizeEvent(payload.event);
+  const upserted = store.upsert({ ...payload, event });
+  const { session, created } = await ensureTopic(bot.api, groupId, store, upserted);
 
-  // Upsert session
-  const session = store.upsert(payload);
-  const promptInfo = detectPrompt(session.last_output);
-  store.update(session.key, { prompt_type: promptInfo.type });
+  updateTopicStatus(bot.api, groupId, session.topic_id, session);
 
-  // Create or reuse topic
-  if (!session.topic_id) {
-    // New session — create topic
-    const topicId = await createTopic(bot.api, groupId, session);
-    store.update(session.key, { topic_id: topicId });
-    session.topic_id = topicId;
+  switch (event) {
+    case EVENTS.SESSION_START:
+      if (!created) await sendInTopic(bot.api, groupId, session, formatSessionResumed(session));
+      return;
+    case EVENTS.USER_PROMPT_SUBMIT:
+      return;
+    case EVENTS.SESSION_END:
+      await sendInTopic(bot.api, groupId, session, formatSessionEnd(session, payload.reason));
+      return;
+    default:
+      await notifyStopped(bot.api, groupId, store, session);
+  }
+}
 
-    // Post start message
-    await bot.api.sendMessage(groupId, formatSessionStart(session), {
-      message_thread_id: topicId,
-      parse_mode: 'HTML',
-    });
-  } else {
-    // Existing session — try to reopen if closed
+/**
+ * Create the session's Forum Topic if it has none (posting the start message),
+ * otherwise make sure the existing topic is open.
+ * @returns {Promise<{session: object, created: boolean}>}
+ */
+async function ensureTopic(api, groupId, store, session) {
+  if (session.topic_id) {
     try {
-      await reopenTopic(bot.api, groupId, session.topic_id);
+      await reopenTopic(api, groupId, session.topic_id);
     } catch {
       // May already be open
     }
+    return { session, created: false };
   }
 
-  // Update topic name
-  updateTopicStatus(bot.api, groupId, session.topic_id, session);
+  const topicId = await createTopic(api, groupId, session);
+  const withTopic = store.update(session.key, { topic_id: topicId });
+  await sendInTopic(api, groupId, withTopic, formatSessionStart(withTopic));
+  return { session: withTopic, created: true };
+}
 
-  // Send notification with inline keyboard
-  const keyboard = buildKeyboard(promptInfo, session.hash);
-  await bot.api.sendMessage(groupId, formatStopNotification(session), {
+/** Detect the prompt type, remember it, and post the notification with buttons. */
+async function notifyStopped(api, groupId, store, session) {
+  const promptInfo = detectPrompt(session.last_output);
+  const updated = store.update(session.key, { prompt_type: promptInfo.type });
+  const keyboard = buildKeyboard(promptInfo, updated.hash);
+  await sendInTopic(api, groupId, updated, formatStopNotification(updated), keyboard);
+}
+
+function sendInTopic(api, groupId, session, text, keyboard) {
+  return api.sendMessage(groupId, text, {
     message_thread_id: session.topic_id,
     parse_mode: 'HTML',
-    reply_markup: keyboard,
+    ...(keyboard ? { reply_markup: keyboard } : {}),
   });
 }
 

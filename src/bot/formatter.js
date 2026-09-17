@@ -68,6 +68,16 @@ export function formatSessionResumed(session) {
 }
 
 /**
+ * Format a "session ended" message (SessionEnd hook).
+ */
+export function formatSessionEnd(session, reason) {
+  const header = `\u{1F3C1} <b>Session ended</b>`;
+  const where = `\u{1F4C1} <code>${escapeHtml(session.project)}</code> \u00B7 \u{1F4BB} ${escapeHtml(session.machine)}`;
+  const lines = reason ? [header, `reason: ${escapeHtml(reason)}`, where] : [header, where];
+  return lines.join('\n');
+}
+
+/**
  * Format elapsed time from an ISO timestamp.
  */
 function formatElapsed(isoTimestamp) {
@@ -94,7 +104,8 @@ export function formatSessionList(sessions) {
   return sessions
     .map((s) => {
       const emoji = STATUS_EMOJI[s.status] || '\u2753';
-      return `${emoji} <b>${escapeHtml(s.project)}</b> \u00B7 ${escapeHtml(s.machine)}`;
+      const head = `${emoji} <b>${escapeHtml(s.project)}</b> \u00B7 ${escapeHtml(s.machine)}`;
+      return s.task ? `${head}\n    \u21B3 ${escapeHtml(s.task)}` : head;
     })
     .join('\n');
 }

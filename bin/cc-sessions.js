@@ -5,6 +5,7 @@ import { join, resolve } from 'path';
 import { homedir } from 'os';
 import { spawn } from 'child_process';
 import { loadOrCreateSecret, CC_SESSIONS_DIR } from '../src/config.js';
+import { HOOK_EVENTS, mergeHookSettings } from '../src/setup/hook-settings.js';
 
 const command = process.argv[2];
 
@@ -50,69 +51,35 @@ async function setup() {
 
   // 4. Merge hook config into Claude Code settings
   const settingsPath = join(homedir(), '.claude', 'settings.json');
-  mergeHookSettings(settingsPath, hookDest);
+  writeHookSettings(settingsPath, hookDest);
   console.log(`  [4/4] Claude Code settings updated: ${settingsPath}`);
+  console.log(`        Hooks: ${HOOK_EVENTS.join(', ')}`);
 
-  console.log('\n\u2713 Hook installed. Start Claude Code sessions and they\'ll appear in Telegram.');
+  console.log(
+    "\n\u2713 Hook installed. Start Claude Code sessions and they'll appear in Telegram.",
+  );
   console.log('\nNext steps:');
   console.log('  1. Set TELEGRAM_BOT_TOKEN and TELEGRAM_GROUP_ID in your environment or .env file');
   console.log('  2. Run: cc-sessions start');
 }
 
-function mergeHookSettings(settingsPath, hookPath) {
-  let settings = {};
-  if (existsSync(settingsPath)) {
-    try {
-      settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
-    } catch {
-      // Corrupt file — start fresh but preserve raw content as backup
-      const backup = settingsPath + '.bak';
-      copyFileSync(settingsPath, backup);
-      console.log(`    (backed up corrupt settings to ${backup})`);
-    }
-  }
-
-  if (!settings.hooks) settings.hooks = {};
-
-  const hookCommand = `node "${hookPath}"`;
-
-  // Merge Stop hook
-  mergeHookEvent(settings.hooks, 'Stop', hookCommand);
-
-  // Merge Notification hook (for idle prompts)
-  mergeHookEvent(settings.hooks, 'Notification', hookCommand);
-
-  // Write back
+function writeHookSettings(settingsPath, hookPath) {
+  const settings = readSettings(settingsPath);
+  const merged = mergeHookSettings(settings, hookPath);
   mkdirSync(join(homedir(), '.claude'), { recursive: true });
-  writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+  writeFileSync(settingsPath, JSON.stringify(merged, null, 2));
 }
 
-function mergeHookEvent(hooks, eventName, command) {
-  if (!hooks[eventName]) hooks[eventName] = [];
-
-  // Check if our hook is already installed
-  const existing = hooks[eventName].find((entry) =>
-    entry.hooks?.some((h) => h.command?.includes('cc-sessions') || h.command?.includes('.cc-sessions/hook.js')),
-  );
-
-  if (existing) {
-    // Update existing
-    const hook = existing.hooks.find(
-      (h) => h.command?.includes('cc-sessions') || h.command?.includes('.cc-sessions/hook.js'),
-    );
-    if (hook) hook.command = command;
-  } else {
-    // Add new
-    hooks[eventName].push({
-      matcher: '',
-      hooks: [
-        {
-          type: 'command',
-          command,
-          timeout: 5,
-        },
-      ],
-    });
+function readSettings(settingsPath) {
+  if (!existsSync(settingsPath)) return {};
+  try {
+    return JSON.parse(readFileSync(settingsPath, 'utf-8'));
+  } catch {
+    // Corrupt file - start fresh but preserve raw content as backup
+    const backup = settingsPath + '.bak';
+    copyFileSync(settingsPath, backup);
+    console.log(`    (backed up corrupt settings to ${backup})`);
+    return {};
   }
 }
 
@@ -123,8 +90,7 @@ async function showStatus() {
     if (resp.ok) {
       console.log('cc-sessions is running.');
       // Try to read session store
-      const storePath =
-        process.env.SESSION_STORE_PATH || join(CC_SESSIONS_DIR, 'sessions.json');
+      const storePath = process.env.SESSION_STORE_PATH || join(CC_SESSIONS_DIR, 'sessions.json');
       if (existsSync(storePath)) {
         const data = JSON.parse(readFileSync(storePath, 'utf-8'));
         const sessions = Object.values(data);
@@ -139,7 +105,8 @@ async function showStatus() {
                 : s.status === 'error'
                   ? '\u{1F534}'
                   : '\u2705';
-          console.log(`  ${emoji} ${s.project} \u00B7 ${s.machine}`);
+          const task = s.task ? ` \u00B7 ${s.task}` : '';
+          console.log(`  ${emoji} ${s.project} \u00B7 ${s.machine}${task}`);
         }
       }
     }
@@ -221,7 +188,8 @@ cc-sessions - Real-time mobile monitoring for Claude Code sessions via Telegram
 
 Commands:
   cc-sessions start          Start bot + hook server (foreground)
-  cc-sessions setup          Install hooks and validate config
+  cc-sessions setup          Install Claude Code hooks (SessionStart, UserPromptSubmit,
+                             Stop, Notification, SessionEnd)
   cc-sessions status         Show running sessions
   cc-sessions daemon start   Start as background daemon
   cc-sessions daemon stop    Stop background daemon
@@ -233,7 +201,9 @@ Environment:
   HOOK_PORT                  HTTP port for hooks (default: 7890)
   HOOK_SECRET                Shared secret (default: auto-generated)
   AUTO_ARCHIVE_HOURS         Close stale topics after N hours (default: 24)
+  SESSION_STORE_PATH         Session state file (default: ~/.cc-sessions/sessions.json)
+  LOG_LEVEL                  debug, info, warn, error (default: info)
 
-Docs: https://github.com/user/cc-sessions
+Docs: https://github.com/bluzername/cc-sessions
 `);
 }

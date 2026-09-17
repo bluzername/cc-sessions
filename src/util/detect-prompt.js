@@ -37,7 +37,9 @@ export function detectPrompt(text) {
   const choiceMatches = tailShort.match(/^\s*([1-9])\.\s+/gm);
   if (choiceMatches && choiceMatches.length >= 2) {
     // Verify this looks like a choice prompt (ends with a question or has no conclusion after)
-    const afterLast = tailShort.slice(tailShort.lastIndexOf(choiceMatches[choiceMatches.length - 1]));
+    const afterLast = tailShort.slice(
+      tailShort.lastIndexOf(choiceMatches[choiceMatches.length - 1]),
+    );
     if (!/\ball\b.*\bpass\b/i.test(afterLast) && !/\bdone\b/i.test(afterLast)) {
       const options = choiceMatches.map((m) => m.trim().replace(/\.\s+$/, ''));
       return { type: 'choice', options };

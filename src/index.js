@@ -1,9 +1,11 @@
-import 'dotenv/config';
+import { config as loadDotenv } from 'dotenv';
 import { loadConfig } from './config.js';
 import { SessionStore } from './sessions/store.js';
 import { HookServer } from './sessions/hooks.js';
 import { Injector } from './sessions/injector.js';
 import { createBot, handleHookPayload, archiveStaleSessions } from './bot/bot.js';
+
+loadDotenv({ quiet: true });
 
 /**
  * Start the cc-sessions server: bot + hook HTTP server.

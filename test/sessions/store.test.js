@@ -138,3 +138,49 @@ describe('SessionStore', () => {
     expect(found.project).toBe('hash-test');
   });
 });
+
+describe('SessionStore lifecycle events', () => {
+  let store;
+  let tmpDir;
+  const base = { machine: 'mac', project: 'fw', working_dir: '/fw' };
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'cc-sessions-events-'));
+    store = new SessionStore(join(tmpDir, 'sessions.json'));
+  });
+
+  afterEach(() => {
+    store.destroy();
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('session_start marks the session active', () => {
+    const s = store.upsert({ ...base, event: 'session_start' });
+    expect(s.status).toBe('active');
+    expect(s.task).toBeNull();
+  });
+
+  it('user_prompt_submit records a task label', () => {
+    const s = store.upsert({ ...base, event: 'user_prompt_submit', prompt: 'Refactor store' });
+    expect(s.status).toBe('active');
+    expect(s.task).toBe('Refactor store');
+  });
+
+  it('stop preserves the task from the last prompt', () => {
+    store.upsert({ ...base, event: 'user_prompt_submit', prompt: 'Refactor store' });
+    const s = store.upsert({ ...base, event: 'stop', output: 'Done?' });
+    expect(s.status).toBe('idle');
+    expect(s.task).toBe('Refactor store');
+  });
+
+  it('session_end marks the session completed', () => {
+    const s = store.upsert({ ...base, event: 'session_end' });
+    expect(s.status).toBe('completed');
+  });
+
+  it('normalizes raw hook event names', () => {
+    const s = store.upsert({ ...base, event: 'SessionStart' });
+    expect(s.last_event).toBe('session_start');
+    expect(s.status).toBe('active');
+  });
+});

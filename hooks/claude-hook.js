@@ -8,8 +8,12 @@
  *
  * Installed into ~/.claude/settings.json by `cc-sessions setup`.
  *
+ * Events: SessionStart, UserPromptSubmit, Stop, Notification, SessionEnd.
+ *
  * REQUIREMENTS:
  * - Complete in <5 seconds (Claude Code kills hooks after timeout)
+ * - Always exit 0 and never write to stdout (stdout of UserPromptSubmit hooks
+ *   is injected into the conversation as context)
  * - Not crash if cc-sessions server is down (fire-and-forget)
  * - Self-contained (no imports beyond Node.js built-ins)
  * - Works on macOS and Linux
@@ -23,9 +27,49 @@ import { homedir } from 'os';
 
 const CC_DIR = join(homedir(), '.cc-sessions');
 
+const STDIN_TIMEOUT_MS = 1500;
+const POST_TIMEOUT_MS = 2500;
+const OUTPUT_MAX_CHARS = 3000;
+const PROMPT_MAX_CHARS = 200;
+
+// Map Claude Code hook_event_name values (any casing) to canonical names.
+// Keep in sync with src/sessions/events.js (this script must stay dependency-free).
+const EVENT_ALIASES = {
+  sessionstart: 'session_start',
+  session_start: 'session_start',
+  userpromptsubmit: 'user_prompt_submit',
+  user_prompt_submit: 'user_prompt_submit',
+  stop: 'stop',
+  notification: 'notification',
+  sessionend: 'session_end',
+  session_end: 'session_end',
+};
+
+// Events where the last assistant output is worth reading from the transcript.
+const EVENTS_WITH_OUTPUT = new Set(['stop', 'notification', 'session_end']);
+
+function normalizeEvent(raw) {
+  const key = String(raw || 'stop').toLowerCase();
+  return EVENT_ALIASES[key] || key;
+}
+
+/** Event-specific fields forwarded to the server (prompt truncated for UserPromptSubmit). */
+function eventFields(event, hookInput) {
+  switch (event) {
+    case 'user_prompt_submit':
+      return { prompt: String(hookInput.prompt || '').slice(0, PROMPT_MAX_CHARS) };
+    case 'session_start':
+      return hookInput.source ? { source: String(hookInput.source) } : {};
+    case 'session_end':
+      return hookInput.reason ? { reason: String(hookInput.reason) } : {};
+    default:
+      return {};
+  }
+}
+
 async function main() {
   // Read hook input from stdin (Claude Code sends JSON)
-  const input = await readStdin(3000);
+  const input = await readStdin(STDIN_TIMEOUT_MS);
   let hookInput = {};
   try {
     hookInput = JSON.parse(input);
@@ -34,11 +78,11 @@ async function main() {
   }
 
   // Determine event from hook_event_name or CLI arg
-  const event = hookInput.hook_event_name?.toLowerCase() || process.argv[2] || 'stop';
+  const event = normalizeEvent(hookInput.hook_event_name || process.argv[2]);
 
   // For Stop hooks, check stop_hook_active to prevent loops
   if (event === 'stop' && hookInput.stop_hook_active) {
-    process.exit(0);
+    return;
   }
 
   // Extract session info
@@ -47,7 +91,7 @@ async function main() {
 
   // Read last assistant output from transcript if available
   let output = '';
-  if (hookInput.transcript_path) {
+  if (EVENTS_WITH_OUTPUT.has(event) && hookInput.transcript_path) {
     output = extractLastOutput(hookInput.transcript_path);
   }
 
@@ -69,7 +113,8 @@ async function main() {
     project: basename(cwd),
     working_dir: cwd,
     timestamp: new Date().toISOString(),
-    output: output.slice(-3000), // Truncate to 3000 chars
+    output: output.slice(-OUTPUT_MAX_CHARS),
+    ...eventFields(event, hookInput),
     secret,
   };
 
@@ -78,9 +123,9 @@ async function main() {
   const port = config.port || 7890;
 
   try {
-    await postPayload(host, port, payload, 4000);
+    await postPayload(host, port, payload, POST_TIMEOUT_MS);
   } catch {
-    // Server may be down — that's OK, fire-and-forget
+    // Server may be down - that's OK, fire-and-forget
   }
 }
 
@@ -201,4 +246,7 @@ function postPayload(host, port, payload, timeoutMs) {
   });
 }
 
-main().catch(() => process.exit(0));
+// Always exit 0, never print: a non-zero exit or stdout would surface inside Claude Code.
+main()
+  .catch(() => {})
+  .finally(() => process.exit(0));

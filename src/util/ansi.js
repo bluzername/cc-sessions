@@ -10,8 +10,5 @@ const MULTI_BLANK_RE = /\n{3,}/g;
 
 export function stripAnsi(text) {
   if (!text) return '';
-  return text
-    .replace(ANSI_RE, '')
-    .replace(MULTI_BLANK_RE, '\n\n')
-    .trimEnd();
+  return text.replace(ANSI_RE, '').replace(MULTI_BLANK_RE, '\n\n').trimEnd();
 }

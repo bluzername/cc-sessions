@@ -5,6 +5,7 @@ import {
   formatSessionStart,
   formatSessionResumed,
   formatSessionList,
+  formatSessionEnd,
 } from '../../src/bot/formatter.js';
 
 describe('escapeHtml', () => {
@@ -108,5 +109,38 @@ describe('formatSessionList', () => {
     expect(msg).toContain('app2');
     expect(msg).toContain('\u{1F7E2}');
     expect(msg).toContain('\u{1F7E1}');
+  });
+});
+
+describe('formatSessionList with tasks', () => {
+  it('shows the task label under a session that has one', () => {
+    const msg = formatSessionList([
+      { project: 'fw', machine: 'mac', status: 'active', task: 'Fix BLE overflow' },
+      { project: 'web', machine: 'linux', status: 'idle', task: null },
+    ]);
+    expect(msg).toContain('Fix BLE overflow');
+    expect(msg.split('\n')).toHaveLength(3);
+  });
+
+  it('escapes HTML in the task label', () => {
+    const msg = formatSessionList([
+      { project: 'fw', machine: 'mac', status: 'active', task: '<b>bold</b>' },
+    ]);
+    expect(msg).toContain('&lt;b&gt;bold&lt;/b&gt;');
+  });
+});
+
+describe('formatSessionEnd', () => {
+  it('formats the end-of-session message with reason', () => {
+    const msg = formatSessionEnd({ project: 'fw', machine: 'mac' }, 'exit');
+    expect(msg).toContain('Session ended');
+    expect(msg).toContain('fw');
+    expect(msg).toContain('exit');
+  });
+
+  it('omits the reason line when none is given', () => {
+    const msg = formatSessionEnd({ project: 'fw', machine: 'mac' });
+    expect(msg).toContain('Session ended');
+    expect(msg).not.toContain('reason');
   });
 });

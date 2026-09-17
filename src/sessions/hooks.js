@@ -59,7 +59,7 @@ export class HookServer {
         // Remove secret from payload before processing
         delete payload.secret;
 
-        // Process asynchronously — don't block the hook
+        // Process asynchronously - don't block the hook
         this.onHook(payload).catch((err) => {
           console.error('Hook processing error:', err.message);
         });
