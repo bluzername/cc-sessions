@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { createHash } from 'crypto';
+import { normalizeEvent, statusForEvent, deriveTask } from './events.js';
 
 /**
  * In-memory session store with JSON file persistence.
@@ -38,6 +39,7 @@ export class SessionStore {
     const key = SessionStore.makeKey(payload.machine, payload.working_dir);
     const hash = SessionStore.makeHash(key);
     const existing = this.sessions.get(key);
+    const event = normalizeEvent(payload.event);
 
     const session = {
       key,
@@ -46,9 +48,10 @@ export class SessionStore {
       project: payload.project,
       working_dir: payload.working_dir,
       topic_id: existing?.topic_id ?? null,
-      status: 'idle',
+      status: statusForEvent(event),
+      task: payload.prompt ? deriveTask(payload.prompt) : (existing?.task ?? null),
       last_output: payload.output || '',
-      last_event: payload.event,
+      last_event: event,
       last_activity: payload.timestamp || new Date().toISOString(),
       created_at: existing?.created_at || new Date().toISOString(),
       prompt_type: null,
@@ -172,7 +175,7 @@ export class SessionStore {
         }
       }
     } catch {
-      // No existing store file — starting fresh
+      // No existing store file - starting fresh
     }
   }
 }

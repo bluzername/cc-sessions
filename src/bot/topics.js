@@ -100,15 +100,18 @@ export async function reopenTopic(api, groupId, topicId) {
   }
 }
 
+const TOPIC_NAME_MAX = 128; // Telegram limit
+const SEPARATOR = ' \u00B7 ';
+
 /**
  * Build topic name from session data.
- * Format: "{emoji} {project} · {machine}"
+ * Format: "{emoji} {project} · {machine}" plus " · {task}" when a task label is set.
  */
 export function buildTopicName(session) {
   const emoji = STATUS_EMOJI[session.status] || '\u{1F7E1}';
-  const name = `${emoji} ${session.project} \u00B7 ${session.machine}`;
-  // Telegram topic names max 128 chars
-  return name.length > 128 ? name.slice(0, 125) + '...' : name;
+  const parts = [session.project, session.machine, session.task].filter(Boolean);
+  const name = `${emoji} ${parts.join(SEPARATOR)}`;
+  return name.length > TOPIC_NAME_MAX ? name.slice(0, TOPIC_NAME_MAX - 3) + '...' : name;
 }
 
 /**

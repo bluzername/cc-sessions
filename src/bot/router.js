@@ -12,7 +12,7 @@ export function setupRouter(bot, store, injector, groupId) {
 
     const topicId = ctx.message.message_thread_id;
 
-    // General topic or no topic — show help
+    // General topic or no topic - show help
     if (!topicId) {
       await ctx.reply('Send messages in a session topic to interact with Claude Code.');
       return;

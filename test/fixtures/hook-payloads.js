@@ -63,3 +63,39 @@ export const NO_OUTPUT = {
   output: '',
   secret: 'test-secret-123',
 };
+
+export const SESSION_START = {
+  event: 'session_start',
+  session_id: 'pqr678',
+  machine: 'macbook-pro',
+  project: 'vantage-firmware',
+  working_dir: '/Users/evy/vantage-firmware',
+  timestamp: '2026-02-07T11:00:00Z',
+  output: '',
+  source: 'startup',
+  secret: 'test-secret-123',
+};
+
+export const USER_PROMPT_SUBMIT = {
+  event: 'user_prompt_submit',
+  session_id: 'pqr678',
+  machine: 'macbook-pro',
+  project: 'vantage-firmware',
+  working_dir: '/Users/evy/vantage-firmware',
+  timestamp: '2026-02-07T11:05:00Z',
+  output: '',
+  prompt: 'Fix the BLE buffer overflow in the firmware',
+  secret: 'test-secret-123',
+};
+
+export const SESSION_END = {
+  event: 'session_end',
+  session_id: 'pqr678',
+  machine: 'macbook-pro',
+  project: 'vantage-firmware',
+  working_dir: '/Users/evy/vantage-firmware',
+  timestamp: '2026-02-07T11:45:00Z',
+  output: 'All tests pass. Done.',
+  reason: 'exit',
+  secret: 'test-secret-123',
+};

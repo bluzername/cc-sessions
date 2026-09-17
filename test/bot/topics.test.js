@@ -53,3 +53,30 @@ describe('buildTopicName', () => {
     expect(name).toContain('\u{1F7E1}');
   });
 });
+
+describe('buildTopicName with task', () => {
+  it('appends the task label after the machine', () => {
+    const name = buildTopicName({
+      status: 'active',
+      project: 'fw',
+      machine: 'mac',
+      task: 'Fix BLE overflow',
+    });
+    expect(name).toBe('\u{1F7E2} fw · mac · Fix BLE overflow');
+  });
+
+  it('omits the separator when there is no task', () => {
+    const name = buildTopicName({ status: 'idle', project: 'fw', machine: 'mac', task: null });
+    expect(name).toBe('\u{1F7E1} fw · mac');
+  });
+
+  it('still respects the 128 char limit with a long task', () => {
+    const name = buildTopicName({
+      status: 'idle',
+      project: 'fw',
+      machine: 'mac',
+      task: 't'.repeat(200),
+    });
+    expect(name.length).toBeLessThanOrEqual(128);
+  });
+});
