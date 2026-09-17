@@ -45,45 +45,45 @@ cc-sessions start
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `cc-sessions start` | Start bot + hook server (foreground) |
-| `cc-sessions setup` | Install Claude Code hooks and validate config |
-| `cc-sessions status` | Show running sessions |
-| `cc-sessions daemon start` | Start as background daemon |
-| `cc-sessions daemon stop` | Stop daemon |
-| `cc-sessions daemon logs` | Tail daemon log |
+| Command                    | Description                                   |
+| -------------------------- | --------------------------------------------- |
+| `cc-sessions start`        | Start bot + hook server (foreground)          |
+| `cc-sessions setup`        | Install Claude Code hooks and validate config |
+| `cc-sessions status`       | Show running sessions                         |
+| `cc-sessions daemon start` | Start as background daemon                    |
+| `cc-sessions daemon stop`  | Stop daemon                                   |
+| `cc-sessions daemon logs`  | Tail daemon log                               |
 
 ## Telegram Commands
 
-| Command | Description |
-|---------|-------------|
-| `/sessions` | List all active sessions with status |
-| `/archive` | Archive current topic's session |
-| `/archive_all` | Archive all stale sessions |
-| `/help` | Usage guide |
+| Command        | Description                          |
+| -------------- | ------------------------------------ |
+| `/sessions`    | List all active sessions with status |
+| `/archive`     | Archive current topic's session      |
+| `/archive_all` | Archive all stale sessions           |
+| `/help`        | Usage guide                          |
 
 ## Configuration
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `TELEGRAM_BOT_TOKEN` | Yes | — | Bot token from @BotFather |
-| `TELEGRAM_GROUP_ID` | Yes | — | Supergroup ID (starts with -100) |
-| `HOOK_PORT` | No | 7890 | HTTP port for hook payloads |
-| `HOOK_SECRET` | No | auto-generated | Shared secret for hook auth |
-| `AUTO_ARCHIVE_HOURS` | No | 24 | Close topics after N hours inactive |
-| `SESSION_STORE_PATH` | No | ~/.cc-sessions/sessions.json | Session state file |
-| `LOG_LEVEL` | No | info | debug, info, warn, error |
+| Variable             | Required | Default                      | Description                         |
+| -------------------- | -------- | ---------------------------- | ----------------------------------- |
+| `TELEGRAM_BOT_TOKEN` | Yes      | —                            | Bot token from @BotFather           |
+| `TELEGRAM_GROUP_ID`  | Yes      | —                            | Supergroup ID (starts with -100)    |
+| `HOOK_PORT`          | No       | 7890                         | HTTP port for hook payloads         |
+| `HOOK_SECRET`        | No       | auto-generated               | Shared secret for hook auth         |
+| `AUTO_ARCHIVE_HOURS` | No       | 24                           | Close topics after N hours inactive |
+| `SESSION_STORE_PATH` | No       | ~/.cc-sessions/sessions.json | Session state file                  |
+| `LOG_LEVEL`          | No       | info                         | debug, info, warn, error            |
 
 ## Session Status
 
-| Emoji | Status | Meaning |
-|-------|--------|---------|
-| 🟢 | Active | Claude is working |
-| 🟡 | Idle | Claude waiting for input |
-| 🔴 | Error | Session errored |
-| ✅ | Completed | Session finished |
-| ⚫ | Archived | Auto-closed after inactivity |
+| Emoji | Status    | Meaning                      |
+| ----- | --------- | ---------------------------- |
+| 🟢    | Active    | Claude is working            |
+| 🟡    | Idle      | Claude waiting for input     |
+| 🔴    | Error     | Session errored              |
+| ✅    | Completed | Session finished             |
+| ⚫    | Archived  | Auto-closed after inactivity |
 
 ## Response Injection
 

@@ -55,7 +55,7 @@ describe('Injector', () => {
     const result = await injector.sendToSession(session, "it's a test");
     expect(result.success).toBe(false);
     // The escaped quote should appear
-    expect(result.message).toContain("it");
+    expect(result.message).toContain('it');
   });
 
   it('handles empty text', async () => {

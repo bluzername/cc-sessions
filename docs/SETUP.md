@@ -45,6 +45,7 @@ cc-sessions setup
 ```
 
 This will:
+
 1. Create `~/.cc-sessions/` directory
 2. Generate a shared secret for hook authentication
 3. Install the hook script
@@ -67,15 +68,18 @@ Start a Claude Code session normally. When Claude stops and waits for input, you
 ## Troubleshooting
 
 **Bot doesn't respond:**
+
 - Verify the bot token with `curl https://api.telegram.org/bot<TOKEN>/getMe`
 - Check the bot is an admin in the group
 - Check Forum Topics are enabled
 
 **No notifications:**
+
 - Verify hooks are installed: check `~/.claude/settings.json`
 - Check the hook server is running: `cc-sessions status`
 - Try a manual hook test: `curl http://localhost:7890/health`
 
 **Can't inject responses:**
+
 - Make sure you're using tmux for your Claude Code sessions
 - Check tmux is available: `tmux list-sessions`

@@ -61,6 +61,7 @@ Claude Code Session
 ## Session Store
 
 Sessions are keyed by `machine:working_dir` (composite key). This means:
+
 - Same project on different machines = different sessions
 - Same machine, different projects = different sessions
 - Resuming Claude Code in the same directory = same session (topic reused)

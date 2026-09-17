@@ -35,8 +35,7 @@ export function loadConfig() {
   }
 
   const hookSecret = process.env.HOOK_SECRET || loadOrCreateSecret();
-  const sessionStorePath =
-    process.env.SESSION_STORE_PATH || join(CC_SESSIONS_DIR, 'sessions.json');
+  const sessionStorePath = process.env.SESSION_STORE_PATH || join(CC_SESSIONS_DIR, 'sessions.json');
   const logLevel = process.env.LOG_LEVEL || 'info';
 
   return {
