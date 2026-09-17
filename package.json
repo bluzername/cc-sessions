@@ -2,6 +2,14 @@
   "name": "cc-sessions",
   "version": "1.0.0",
   "description": "Real-time mobile monitoring for parallel Claude Code sessions via Telegram",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluzername/cc-sessions.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bluzername/cc-sessions/issues"
+  },
+  "homepage": "https://github.com/bluzername/cc-sessions#readme",
   "type": "module",
   "main": "src/index.js",
   "bin": {
@@ -23,10 +31,10 @@
     "developer-tools",
     "cli"
   ],
-  "author": "",
+  "author": "bluzername",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20"
   },
   "files": [
     "bin/",
@@ -37,12 +45,12 @@
   ],
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
-    "dotenv": "^16.4.7",
-    "grammy": "^1.35.0"
+    "dotenv": "^17.4.2",
+    "grammy": "^1.46.0"
   },
   "devDependencies": {
-    "eslint": "^9.19.0",
-    "prettier": "^3.4.2",
-    "vitest": "^3.0.5"
+    "eslint": "^10.10.0",
+    "prettier": "^3.9.7",
+    "vitest": "^5.0.1"
   }
 }
